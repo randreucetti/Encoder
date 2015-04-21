@@ -7,5 +7,5 @@ import java.io.OutputStream;
 public interface Encoder {
 	public void encode(InputStream input, OutputStream output) throws IOException;
 
-	public void decode(InputStream input, OutputStream output);
+	public void decode(InputStream input, OutputStream output) throws IOException;
 }

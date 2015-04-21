@@ -21,11 +21,19 @@ public class AdaptiveArithmeticEncoder implements Encoder {
 	private OutputStream output;
 	private byte outputByte;
 	private int numBits;
-	
+
 	protected Logger logger = LoggerFactory.getLogger(this.getClass());
 
-	public AdaptiveArithmeticEncoder() {
-		logger.info("Initialized with {} bits", NUM_BITS);
+	public static Encoder getEncoder() {
+		return new AdaptiveArithmeticEncoder();
+	}
+
+	private AdaptiveArithmeticEncoder() {
+
+	}
+
+	private void initEncoder() {
+		logger.info("Encoder initialized with {} bits", NUM_BITS);
 		L = 0;
 		R = B1;
 		bitsOutstanding = 0;
@@ -34,8 +42,18 @@ public class AdaptiveArithmeticEncoder implements Encoder {
 		numBits = 0;
 	}
 
+	private void initDecoder() {
+		logger.info("Decoder initialized with {} bits", NUM_BITS);
+		L = 0;
+		R = B1;
+		t = 256;
+		outputByte = 0;
+		numBits = 0;
+	}
+
 	@Override
 	public void encode(InputStream input, OutputStream output) throws IOException {
+		initEncoder();
 		this.output = output;
 		while (input.available() > 0) {
 			encode(input.read());
@@ -44,9 +62,12 @@ public class AdaptiveArithmeticEncoder implements Encoder {
 	}
 
 	@Override
-	public void decode(InputStream input, OutputStream output) {
-		// TODO Auto-generated method stub
-
+	public void decode(InputStream input, OutputStream output) throws IOException {
+		initDecoder();
+		this.output = output;
+		while (input.available() > 0) {
+			decode(input.read());
+		}
 	}
 
 	private void encode(int s) throws IOException {
@@ -82,21 +103,24 @@ public class AdaptiveArithmeticEncoder implements Encoder {
 
 	private void bitPlusFollows(int b) throws IOException {
 		outputByte = (byte) ((outputByte << 1 | b));
-		 if(numBits==8)
-	        {
-	            output.write(outputByte);
-	            numBits=0;
-	        }
-	        while(0 < bitsOutstanding)
-	        {
-	            outputByte = (byte) ((outputByte<<1)|(1-b));
-	            numBits++;
-	            if(numBits==8)
-	            {
-	                output.write(outputByte);
-	                numBits=0;
-	            }
-	            bitsOutstanding--;
-	        }
+		numBits++;
+		if (numBits == 8) {
+			output.write(outputByte);
+			numBits = 0;
+		}
+		while (0 < bitsOutstanding) {
+			outputByte = (byte) ((outputByte << 1) | (1 - b));
+			numBits++;
+			if (numBits == 8) {
+				output.write(outputByte);
+				numBits = 0;
+			}
+			bitsOutstanding--;
+		}
+	}
+
+	private void decode(int read) {
+		// TODO Auto-generated method stub
+
 	}
 }

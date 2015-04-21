@@ -2,7 +2,9 @@ package com.randreucetti.encoder.impl;
 
 import static org.junit.Assert.assertNotNull;
 
+import java.io.FileOutputStream;
 import java.io.IOException;
+import java.io.OutputStream;
 
 import org.junit.Test;
 
@@ -12,8 +14,13 @@ public class AdaptiveArithmeticEncoderTest {
 
 	@Test
 	public void testEncode() throws IOException{
-		Encoder encoder = new AdaptiveArithmeticEncoder();
+		Encoder encoder = AdaptiveArithmeticEncoder.getEncoder();
 		assertNotNull("Test file missing", getClass().getResource("/merged_document.pdf"));
-		encoder.encode(getClass().getResourceAsStream("/merged_document.pdf"), System.out);
+		OutputStream output = new FileOutputStream("output.dat");
+		encoder.encode(getClass().getResourceAsStream("/merged_document.pdf"), output);
+		output.flush();
+		output.close();
 	}
+	
+	
 }
