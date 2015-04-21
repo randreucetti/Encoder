@@ -15,18 +15,24 @@ public class AdaptiveArithmeticEncoder implements Encoder {
 	private int T;
 	private int bitsOutstanding;
 	private int l, h, t;
+	private OutputStream output;
+	private byte outputByte;
+	private int numBits;
 
 	private AdaptiveArithmeticEncoder() {
 		L = 0;
 		R = B1;
 		bitsOutstanding = 0;
 		t = 256;
+		outputByte = 0;
+		numBits = 0;
 	}
 
 	@Override
 	public void encode(InputStream input, OutputStream output) throws IOException {
+		this.output = output;
 		while (input.available() > 0) {
-			encode(input.read(), output);
+			encode(input.read());
 		}
 
 	}
@@ -37,9 +43,14 @@ public class AdaptiveArithmeticEncoder implements Encoder {
 
 	}
 
-	private void encode(int s, OutputStream output) {
+	private void encode(int s) throws IOException {
 		rangeOf(s);
 		T = (R * l) / t;
+		L = L + T;
+		R = ((R * h) / t) - T;
+		if (R <= B2) {
+			normalise();
+		}
 	}
 
 	private void rangeOf(int s) {
@@ -47,4 +58,39 @@ public class AdaptiveArithmeticEncoder implements Encoder {
 		h = s + 1;
 	}
 
+	private void normalise() throws IOException {
+		while (R <= B2) {
+			if (L + R <= B1) {
+				bitPlusFollows(0);
+			} else if (B1 <= L) {
+				bitPlusFollows(1);
+				L = L - B1;
+			} else {
+				bitsOutstanding++;
+				L = L - B2;
+			}
+			L = L * 2;
+			R = R * 2;
+		}
+	}
+
+	private void bitPlusFollows(int b) throws IOException {
+		outputByte = (byte) ((outputByte << 1 | b));
+		 if(numBits==8)
+	        {
+	            output.write(outputByte);
+	            numBits=0;
+	        }
+	        while(0 < bitsOutstanding)
+	        {
+	            outputByte = (byte) ((outputByte<<1)|(1-b));
+	            numBits++;
+	            if(numBits==8)
+	            {
+	                output.write(outputByte);
+	                numBits=0;
+	            }
+	            bitsOutstanding--;
+	        }
+	}
 }
