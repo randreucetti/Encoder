@@ -120,6 +120,6 @@ public class AdaptiveArithmeticEncoder implements Encoder {
 	}
 
 	private void decode(int read) {
-		
+
 	}
 }
