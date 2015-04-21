@@ -4,6 +4,9 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import com.randreucetti.encoder.Encoder;
 
 public class AdaptiveArithmeticEncoder implements Encoder {
@@ -18,8 +21,11 @@ public class AdaptiveArithmeticEncoder implements Encoder {
 	private OutputStream output;
 	private byte outputByte;
 	private int numBits;
+	
+	protected Logger logger = LoggerFactory.getLogger(this.getClass());
 
-	private AdaptiveArithmeticEncoder() {
+	public AdaptiveArithmeticEncoder() {
+		logger.info("Initialized with {} bits", NUM_BITS);
 		L = 0;
 		R = B1;
 		bitsOutstanding = 0;
