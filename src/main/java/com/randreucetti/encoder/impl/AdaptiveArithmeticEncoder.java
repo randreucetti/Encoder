@@ -119,7 +119,12 @@ public class AdaptiveArithmeticEncoder implements Encoder {
 		}
 	}
 
-	private void decode(int read) {
+	private void decode(int v) {
+		symbolOf(v);
+	}
 
+	private void symbolOf(int v) {
+		// TODO Auto-generated method stub
+		
 	}
 }
