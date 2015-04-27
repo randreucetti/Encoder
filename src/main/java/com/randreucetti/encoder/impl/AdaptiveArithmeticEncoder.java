@@ -17,10 +17,11 @@ public class AdaptiveArithmeticEncoder implements Encoder {
 	private int R;
 	private int T;
 	private int bitsOutstanding;
-	private int l, h, t;
+	private int l, h, t, s;
 	private OutputStream output;
 	private byte outputByte;
 	private int numBits;
+	private int[] ranges;
 
 	protected Logger logger = LoggerFactory.getLogger(this.getClass());
 
@@ -40,6 +41,9 @@ public class AdaptiveArithmeticEncoder implements Encoder {
 		t = 256;
 		outputByte = 0;
 		numBits = 0;
+		ranges = new int[256];
+		for (int i = 0; i < ranges.length; i++)
+			ranges[i] = i;
 	}
 
 	private void initDecoder() {
@@ -71,6 +75,7 @@ public class AdaptiveArithmeticEncoder implements Encoder {
 	}
 
 	private void encode(int s) throws IOException {
+		logger.info("Atempting to encode: {}", s);
 		rangeOf(s);
 		T = (R * l) / t;
 		L = L + T;
@@ -81,12 +86,25 @@ public class AdaptiveArithmeticEncoder implements Encoder {
 	}
 
 	private void rangeOf(int s) {
-		l = s;
-		h = s + 1;
+		if (t > B2) {
+			t = 0;
+			for (int i = 0; i < ranges.length; i++) {
+				ranges[i] = ranges[i] / 2 + 1;
+				t = ranges[i] + t;
+			}
+		}
+		l = ranges[s];
+		if (s == 255)
+			h = t;
+		else
+			h = ranges[s + 1];
+		for (int i = s + 1; i < ranges.length; i++)
+			ranges[i]++;
+		t++;
 	}
 
 	private void normalise() throws IOException {
-		while (R <= B2) {
+		while (R <= B2 && R != 0) {
 			if (L + R <= B1) {
 				bitPlusFollows(0);
 			} else if (B1 <= L) {
@@ -119,12 +137,19 @@ public class AdaptiveArithmeticEncoder implements Encoder {
 		}
 	}
 
-	private void decode(int v) {
+	private void decode(int v) throws IOException {
 		symbolOf(v);
+		L = (L + R * l / t) * 2;
+		R = R * (h - l) / t;
+
+		if (R <= B2)
+			normalise();
+		output.write(s);
 	}
 
 	private void symbolOf(int v) {
-		// TODO Auto-generated method stub
-		
+		l = v;
+		h = v + 1;
+		s = l;
 	}
 }

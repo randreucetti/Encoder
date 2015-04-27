@@ -15,7 +15,7 @@ public class AdaptiveArithmeticEncoderTest {
 	@Test
 	public void testEncode() throws IOException{
 		Encoder encoder = AdaptiveArithmeticEncoder.getEncoder();
-		assertNotNull("Test file missing", getClass().getResource("/merged_document.pdf"));
+		assertNotNull("Test file missing", getClass().getResource("/input.pdf"));
 		OutputStream output = new FileOutputStream("output.dat");
 		encoder.encode(getClass().getResourceAsStream("/merged_document.pdf"), output);
 		output.flush();
