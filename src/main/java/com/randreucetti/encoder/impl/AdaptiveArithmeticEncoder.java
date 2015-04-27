@@ -15,13 +15,15 @@ public class AdaptiveArithmeticEncoder implements Encoder {
 	private static final int B2 = (int) Math.pow(2, (NUM_BITS - 2));
 	private int L;
 	private int R;
-	private int T;
 	private int bitsOutstanding;
-	private int l, h, t, s;
+	private int l, h, t, s, v;
 	private OutputStream output;
+	private InputStream input;
 	private byte outputByte;
+	private byte inputByte;
 	private int numBits;
 	private int[] ranges;
+	private boolean dataAvailable = false;
 
 	protected Logger logger = LoggerFactory.getLogger(this.getClass());
 
@@ -53,6 +55,9 @@ public class AdaptiveArithmeticEncoder implements Encoder {
 		t = 256;
 		outputByte = 0;
 		numBits = 0;
+		ranges = new int[256];
+		for (int i = 0; i < ranges.length; i++)
+			ranges[i] = i;
 	}
 
 	@Override
@@ -69,17 +74,20 @@ public class AdaptiveArithmeticEncoder implements Encoder {
 	public void decode(InputStream input, OutputStream output) throws IOException {
 		initDecoder();
 		this.output = output;
-		while (input.available() > 0) {
-			decode(input.read());
+		this.input = input;
+		if (this.input.available() > 0) {
+			v = input.read();
+			dataAvailable = true;
+		}
+		while (dataAvailable) {
+			decode();
 		}
 	}
 
 	private void encode(int s) throws IOException {
-		logger.info("Atempting to encode: {}", s);
 		rangeOf(s);
-		T = (R * l) / t;
-		L = L + T;
-		R = ((R * h) / t) - T;
+		L = (L + R * l / t) * 2; // algorithms from notes, had to be adjusted slgihtly by adding *2
+		R = R * (h - l) / t;
 		if (R <= B2) {
 			normalise();
 		}
@@ -104,7 +112,7 @@ public class AdaptiveArithmeticEncoder implements Encoder {
 	}
 
 	private void normalise() throws IOException {
-		while (R <= B2 && R != 0) {
+		while (R <= B2) {
 			if (L + R <= B1) {
 				bitPlusFollows(0);
 			} else if (B1 <= L) {
@@ -116,6 +124,26 @@ public class AdaptiveArithmeticEncoder implements Encoder {
 			}
 			L = L * 2;
 			R = R * 2;
+		}
+	}
+
+	private void normalizeDecoder() throws IOException // normalize method
+	{
+		while (R <= B2) {
+			if (L + R <= B1) {
+
+			} else if (B1 <= L) {
+				L = L - B1;
+				// V = V - b1;
+			} else {
+				L = L - B2;
+				// V = V - b2;
+			}
+			L = L * 2;
+			R = R * 2;
+			v = v * 2;
+			v = v % 256;
+			getNextBit(); // reads a single bit from file and adds to V
 		}
 	}
 
@@ -137,19 +165,55 @@ public class AdaptiveArithmeticEncoder implements Encoder {
 		}
 	}
 
-	private void decode(int v) throws IOException {
+	private void getNextBit() throws IOException {
+		if (numBits == 0 && input.available() > 0) {
+			inputByte = (byte) input.read();
+			numBits = 8;
+		}
+
+		if (input.available() <= 0) {
+			dataAvailable = false;
+		}
+		if (inputByte < 0) {
+			v++;
+		}
+
+		inputByte = (byte) ((inputByte << 1) | 0);
+		numBits--;
+
+	}
+
+	private void decode() throws IOException {
 		symbolOf(v);
 		L = (L + R * l / t) * 2;
 		R = R * (h - l) / t;
 
 		if (R <= B2)
-			normalise();
+			normalizeDecoder();
 		output.write(s);
 	}
 
 	private void symbolOf(int v) {
-		l = v;
-		h = v + 1;
-		s = l;
+		if (t > B2) {
+			t = 0;
+			for (int i = 0; i < ranges.length; i++) {
+				ranges[i] = ranges[i] / 2 + 1;
+				t = ranges[i] + t;
+			}
+		}
+		for (int i = 0; i < ranges.length; i++) {
+			if (ranges[i] >= v) {
+				s = i;
+				l = ranges[i];
+				if (i == 255)
+					h = t;
+				else
+					h = ranges[i + 1];
+				break;
+			}
+		}
+		for (int i = h; i < ranges.length; i++)
+			ranges[i]++;
+		t++;
 	}
 }
